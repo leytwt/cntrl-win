@@ -87,7 +87,19 @@ function bindEvents() {
         document.getElementById('generatorLayout').style.display = 'grid';
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
+    document.getElementById('prompt').addEventListener('input', () => {
+    const textarea = document.getElementById('prompt');
+    const charCount = document.getElementById('charCount');
 
+    // Обновляем счетчик символов
+    charCount.textContent = textarea.value.length;
+
+    // Убираем красную подсветку при вводе текста
+    if (textarea.value.trim()) {
+        textarea.style.borderColor = 'var(--border)';
+        textarea.style.boxShadow = 'none';
+    }
+    });
     const ua = document.getElementById('uploadArea');
     const fi = document.getElementById('fileInput');
     ua.addEventListener('click', () => fi.click());
@@ -105,7 +117,35 @@ function bindEvents() {
         document.getElementById('charCount').textContent = document.getElementById('prompt').value.length;
     });
 
-    document.getElementById('nextStep').addEventListener('click', () => switchStep(2));
+    document.getElementById('nextStep').addEventListener('click', () => {
+    // Проверяем, что введен текст или загружен файл
+    const prompt = document.getElementById('prompt').value.trim();
+
+    if (!prompt && !selectedFile) {
+        // Показываем ошибку
+        toast(t('enterTopic'), 'error');
+
+        // Подсвечиваем поле с ошибкой
+        const textarea = document.getElementById('prompt');
+        textarea.style.borderColor = 'var(--error)';
+        textarea.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+
+        // Анимируем поле
+        textarea.style.animation = 'shake 0.5s ease';
+
+        // Убираем подсветку через 2 секунды
+        setTimeout(() => {
+            textarea.style.borderColor = 'var(--border)';
+            textarea.style.boxShadow = 'none';
+            textarea.style.animation = '';
+        }, 2000);
+
+        return; // Не переходим на следующий шаг
+    }
+
+    // Если все ок - переходим на шаг 2
+    switchStep(2);
+});
     document.getElementById('prevStep').addEventListener('click', () => switchStep(1));
     document.getElementById('decSlides').addEventListener('click', () => adjustSlides(-1));
     document.getElementById('incSlides').addEventListener('click', () => adjustSlides(1));
