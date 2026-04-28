@@ -206,13 +206,28 @@ function removeFile() {
 function adjustSlides(d) { const i = document.getElementById('slidesCount'); i.value = Math.max(1, Math.min(20, parseInt(i.value)+d)); }
 
 function switchStep(s) {
+    // Переключаем видимость шагов формы
     document.querySelectorAll('.form-step').forEach(e => e.classList.remove('active'));
-    document.getElementById(`formStep${s}`).classList.add('active');
+
+    // Показываем нужный шаг
+    const formStep = document.getElementById(`formStep${s}`);
+    if (formStep) {
+        formStep.classList.add('active');
+    }
+
+    // Обновляем индикатор шагов
     document.querySelectorAll('.step').forEach(st => {
         const n = parseInt(st.dataset.step);
         st.classList.remove('active', 'completed');
-        if (n < s) st.classList.add('completed');
-        if (n === s) st.classList.add('active');
+
+        if (n < s) {
+            // Предыдущие шаги - зеленые (completed)
+            st.classList.add('completed');
+        } else if (n === s) {
+            // Текущий шаг - синий (active)
+            st.classList.add('active');
+        }
+        // Будущие шаги остаются серыми
     });
 }
 
@@ -220,7 +235,7 @@ async function generate() {
     const prompt = document.getElementById('prompt').value.trim();
     if (!prompt && !selectedFile) return toast(t('enterTopic'), 'error');
     setLoading(true);
-    switchStep(2);
+    switchStep(2); // Переключаем на шаг 2 (Настройки) - он станет синим
 
     const fd = new FormData();
     fd.append('prompt', prompt);
@@ -234,15 +249,46 @@ async function generate() {
         updateProgress(30, t('sending'));
         const res = await fetch(`${API_URL}/generate-presentation`, { method: 'POST', body: fd });
         updateProgress(60, t('generatingContent'));
-        if (!res.ok) { let e = `Error ${res.status}`; try { const j = await res.json(); e = j.detail || e; } catch(_){} throw new Error(e); }
+        if (!res.ok) {
+            let e = `Error ${res.status}`;
+            try {
+                const j = await res.json();
+                e = j.detail || e;
+            } catch(_){}
+            throw new Error(e);
+        }
         updateProgress(80, t('saving'));
         pptBlob = await res.blob();
         if (!pptBlob.size) throw new Error('Empty');
         updateProgress(100, t('done'));
         slides = generatePreview();
         currentSlide = 0;
-        setTimeout(() => { setLoading(false); showSlides(); switchStep(3); toast(t('ready'),'success'); setTimeout(download,500); }, 500);
-    } catch(e) { setLoading(false); switchStep(1); toast(`${t('error')}: ${e.message}`,'error'); }
+
+        setTimeout(() => {
+            setLoading(false);
+            showSlides();
+
+            // Делаем все шаги зелеными (completed)
+            document.querySelectorAll('.step').forEach(st => {
+                st.classList.remove('active');
+                st.classList.add('completed'); // Все шаги зеленые
+            });
+
+            // Переключаем форму на шаг 3
+            document.querySelectorAll('.form-step').forEach(e => e.classList.remove('active'));
+            const formStep3 = document.getElementById('formStep3');
+            if (formStep3) {
+                formStep3.classList.add('active');
+            }
+
+            toast(t('ready'),'success');
+            setTimeout(download, 500);
+        }, 500);
+    } catch(e) {
+        setLoading(false);
+        switchStep(1); // В случае ошибки возвращаем на шаг 1
+        toast(`${t('error')}: ${e.message}`,'error');
+    }
 }
 
 function generatePreview() {
@@ -293,12 +339,32 @@ function download() {
 }
 
 function reset() {
-    pptBlob=null; slides=[]; currentSlide=0;
-    document.getElementById('stateEmpty').style.display='block';
-    document.getElementById('stateSlides').style.display='none';
-    document.getElementById('previewToolbar').style.display='none';
-    switchStep(1);
-    toast(t('formReset'),'info');
+    pptBlob = null;
+    slides = [];
+    currentSlide = 0;
+    document.getElementById('stateEmpty').style.display = 'block';
+    document.getElementById('stateSlides').style.display = 'none';
+    document.getElementById('previewToolbar').style.display = 'none';
+
+    // Сбрасываем все шаги
+    document.querySelectorAll('.step').forEach(st => {
+        st.classList.remove('active', 'completed');
+    });
+
+    // Делаем первый шаг активным
+    const firstStep = document.querySelector('.step[data-step="1"]');
+    if (firstStep) {
+        firstStep.classList.add('active');
+    }
+
+    // Показываем первый шаг формы
+    document.querySelectorAll('.form-step').forEach(e => e.classList.remove('active'));
+    const formStep1 = document.getElementById('formStep1');
+    if (formStep1) {
+        formStep1.classList.add('active');
+    }
+
+    toast(t('formReset'), 'info');
 }
 
 function setLoading(v) {
